@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,13 +24,35 @@ async def list_tasks(db: AsyncSession = Depends(get_db)) -> list[Task]:
     return list(result.scalars().all())
 
 
-@router.patch("/{task_id}", response_model=TaskRead)
-async def update_task(task_id: int, payload: TaskUpdate, db: AsyncSession = Depends(get_db)) -> Task:
+@router.get("/{task_id}", response_model=TaskRead)
+async def get_task(task_id: int, db: AsyncSession = Depends(get_db)) -> Task:
     task = await db.get(Task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    return task
+
+
+@router.patch("/{task_id}", response_model=TaskRead)
+async def update_task(
+    task_id: int,
+    payload: TaskUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> Task:
+    task = await db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    for field, value in payload.model_dump(exclude_unset=True, mode="json").items():
         setattr(task, field, value)
     await db.commit()
     await db.refresh(task)
     return task
+
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)) -> Response:
+    task = await db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    await db.delete(task)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
