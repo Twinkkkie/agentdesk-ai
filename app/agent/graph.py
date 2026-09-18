@@ -1,26 +1,23 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
+
+from app.services.planner import plan_tasks
 
 
 class AgentState(TypedDict):
     request: str
-    task_titles: list[str]
+    tasks: list[dict[str, Any]]
     summary: str
-    proposed_actions: list[dict[str, str | int | bool]]
+    proposed_actions: list[dict[str, Any]]
 
 
-def analyze(state: AgentState) -> AgentState:
-    open_count = len(state["task_titles"])
-    state["summary"] = f"Analyzed {open_count} open task(s) for request: {state['request']}"
-    state["proposed_actions"] = [
-        {
-            "action": "review_priorities",
-            "reason": "Prioritize open work before making changes.",
-            "requires_approval": True,
-        }
-    ]
-    return state
+async def analyze(state: AgentState) -> dict:
+    plan = await plan_tasks(state["request"], state["tasks"])
+    return {
+        "summary": plan.summary,
+        "proposed_actions": [action.model_dump(mode="json") for action in plan.actions],
+    }
 
 
 def build_graph():
