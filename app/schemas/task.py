@@ -24,3 +24,4 @@ class TaskRead(BaseModel):
     description: str | None
     status: TaskStatus
     created_at: datetime
+    updated_at: datetime
