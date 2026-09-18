@@ -1,10 +1,38 @@
-from fastapi import FastAPI
+import logging
+import time
 
-from app.api.routes import agent, health, tasks
+from fastapi import FastAPI, Request
+
+from app.api.routes import agent, health, runs, tasks
 from app.core.config import settings
+from app.core.logging import configure_logging
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+configure_logging()
+logger = logging.getLogger("agentdesk.http")
+
+app = FastAPI(
+    title=settings.app_name,
+    version="1.0.0",
+    description="Task orchestration API with persistent human-approved AI action planning.",
+)
+
+
+@app.middleware("http")
+async def request_logging(request: Request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    logger.info(
+        "%s %s -> %s %.1fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
+    )
+    return response
+
 
 app.include_router(health.router)
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(agent.router, prefix="/api/v1")
+app.include_router(runs.router, prefix="/api/v1")
