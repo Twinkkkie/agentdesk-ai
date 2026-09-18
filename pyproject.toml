@@ -1,6 +1,10 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "agentdesk-ai"
-version = "0.1.0"
+version = "1.0.0"
 description = "AI task orchestration backend built with FastAPI, PostgreSQL and LangGraph"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,10 +21,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "aiosqlite>=0.20",
   "pytest>=8.3",
   "pytest-asyncio>=0.24",
   "ruff>=0.6"
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
